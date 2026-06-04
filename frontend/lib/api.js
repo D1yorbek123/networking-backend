@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000'
+const API_URL = 'http://34.229.59.215:5000'
 
 export const apiCall = async (endpoint, options = {}) => {
 	const token =
