@@ -8,8 +8,8 @@ const router = express.Router();
 
 router.use(verifyToken);
 
-router.get('/', getAllDeals);
-router.get('/:id', getDealById);
+router.get('/', requireAdmin, getAllDeals);
+router.get('/:id', requireAdmin, getDealById);
 router.post('/', requireAdmin, createDeal);
 router.put('/:id', requireAdmin, updateDeal);
 router.delete('/:id', requireAdmin, deleteDeal);

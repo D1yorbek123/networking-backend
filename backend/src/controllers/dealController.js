@@ -29,10 +29,12 @@ export const getDealById = async (req, res) => {
 
 export const createDeal = async (req, res) => {
   try {
-    const { name, customer, value, stage, probability, expectedCloseDate, assignedTo } = req.body;
+    const { title, name, customer, value, stage, probability, expectedCloseDate, assignedTo } = req.body;
+    
+    const dealName = title || name;
     
     const deal = new Deal({
-      name, customer, value, stage, probability, expectedCloseDate, assignedTo,
+      name: dealName, customer, value, stage, probability, expectedCloseDate, assignedTo,
     });
     
     await deal.save();
@@ -53,7 +55,13 @@ export const createDeal = async (req, res) => {
 
 export const updateDeal = async (req, res) => {
   try {
-    const deal = await Deal.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updateData = { ...req.body };
+    if (updateData.title) {
+      updateData.name = updateData.title;
+      delete updateData.title;
+    }
+    
+    const deal = await Deal.findByIdAndUpdate(req.params.id, updateData, { new: true });
     
     if (!deal) {
       return res.status(404).json({ message: 'Deal not found' });

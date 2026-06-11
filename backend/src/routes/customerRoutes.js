@@ -8,8 +8,8 @@ const router = express.Router();
 
 router.use(verifyToken);
 
-router.get('/', getAllCustomers);
-router.get('/:id', getCustomerById);
+router.get('/', requireAdmin, getAllCustomers);
+router.get('/:id', requireAdmin, getCustomerById);
 router.post('/', requireAdmin, createCustomer);
 router.put('/:id', requireAdmin, updateCustomer);
 router.delete('/:id', requireAdmin, deleteCustomer);

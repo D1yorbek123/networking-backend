@@ -1,190 +1,236 @@
-'use client'
+'use client';
+import { useState, useEffect } from 'react';
+import { getCustomers, createCustomer, updateCustomer, deleteCustomer } from '../../lib/api';
+import { Search, Plus, Edit2, Trash2, X } from 'lucide-react';
 
-import { useState, useEffect } from 'react'
-import { getCustomers, createCustomer, deleteCustomer } from '@/lib/api'
-import { AlertCircle, Plus, Trash2, X, Users, Building2, Mail, Phone } from 'lucide-react'
-
-export default function CustomersList() {
-  const [customers, setCustomers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [showForm, setShowForm] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+const CustomersList = () => {
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null);
   const [formData, setFormData] = useState({
-    name: '', email: '', phone: '', company: '', industry: '', city: '', country: ''
-  })
+    name: '', email: '', phone: '', company: '', password: '',
+  });
 
   useEffect(() => {
-    loadCustomers()
-  }, [])
+    fetchCustomers();
+  }, []);
 
-  const loadCustomers = async () => {
+  const fetchCustomers = async () => {
     try {
-      setLoading(true)
-      const data = await getCustomers()
-      setCustomers(data)
+      const data = await getCustomers();
+      setCustomers(data.customers || data || []);
     } catch (err) {
-      setError(err.message)
+      console.error('Error fetching customers:', err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      setSubmitting(true)
-      await createCustomer(formData)
-      await loadCustomers()
-      setFormData({ name: '', email: '', phone: '', company: '', industry: '', city: '', country: '' })
-      setShowForm(false)
+      if (editingCustomer) {
+        await updateCustomer(editingCustomer._id, formData);
+      } else {
+        await createCustomer({ ...formData, role: 'customer' });
+      }
+      fetchCustomers();
+      resetForm();
     } catch (err) {
-      setError(err.message)
-    } finally {
-      setSubmitting(false)
+      console.error('Error saving customer:', err);
     }
-  }
+  };
 
   const handleDelete = async (id) => {
-    if (confirm('Are you sure you want to delete this customer?')) {
+    if (window.confirm("Bu mijozni o'chirib tashlashni xohlaysizmi?")) {
       try {
-        await deleteCustomer(id)
-        await loadCustomers()
+        await deleteCustomer(id);
+        fetchCustomers();
       } catch (err) {
-        setError(err.message)
+        console.error('Error deleting customer:', err);
       }
     }
-  }
+  };
+
+  const startEdit = (customer) => {
+    setEditingCustomer(customer);
+    setFormData({
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone || '',
+      company: customer.company || '',
+      password: '',
+    });
+    setShowAddModal(true);
+  };
+
+  const resetForm = () => {
+    setFormData({ name: '', email: '', phone: '', company: '', password: '' });
+    setEditingCustomer(null);
+    setShowAddModal(false);
+  };
+
+  const filteredCustomers = (Array.isArray(customers) ? customers : []).filter(c =>
+    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.company?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="animate-fade-in space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <p className="text-xs text-white/30">{customers.length} total customers</p>
+          <h2 className="text-2xl font-extrabold text-slate-100 tracking-tight">Mijozlar Boshqaruvi</h2>
+          <p className="text-sm text-slate-500 mt-1 font-medium">Barcha mijozlar bazasi</p>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-all"
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600/20 text-blue-400 font-bold rounded-xl border border-blue-500/30 hover:bg-blue-600/30 hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all duration-300 uppercase tracking-widest text-xs"
         >
-          {showForm ? <X size={16} /> : <Plus size={16} />}
-          {showForm ? 'Cancel' : 'Add Customer'}
+          <Plus size={16} />
+          Mijoz Qo'shish
         </button>
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="p-3.5 bg-red-500/[0.06] border border-red-500/10 rounded-lg text-red-400 flex items-center gap-2.5 text-sm animate-fade-in">
-          <AlertCircle size={16} />
-          {error}
-          <button onClick={() => setError('')} className="ml-auto text-red-400/60 hover:text-red-400">
-            <X size={14} />
-          </button>
-        </div>
-      )}
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+        <input
+          type="text"
+          placeholder="Ism, email yoki kompaniya bo'yicha qidiruv..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-slate-200 placeholder:text-slate-600 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all text-sm"
+        />
+      </div>
 
-      {/* Form */}
-      {showForm && (
-        <form onSubmit={handleSubmit} className="bg-[#0a0a0a] rounded-xl border border-white/[0.06] p-5 space-y-4 animate-slide-up">
-          <p className="text-sm font-semibold text-white mb-1">New Customer</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input type="text" placeholder="Full Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required className="px-3.5 py-2.5 rounded-lg text-sm bg-white/[0.03] border-white/[0.06]" />
-            <input type="email" placeholder="Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required className="px-3.5 py-2.5 rounded-lg text-sm bg-white/[0.03] border-white/[0.06]" />
-            <input type="tel" placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="px-3.5 py-2.5 rounded-lg text-sm bg-white/[0.03] border-white/[0.06]" />
-            <input type="text" placeholder="Company" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} className="px-3.5 py-2.5 rounded-lg text-sm bg-white/[0.03] border-white/[0.06]" />
-            <input type="text" placeholder="Industry" value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})} className="px-3.5 py-2.5 rounded-lg text-sm bg-white/[0.03] border-white/[0.06]" />
-            <input type="text" placeholder="City" value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} className="px-3.5 py-2.5 rounded-lg text-sm bg-white/[0.03] border-white/[0.06]" />
+      {/* Customers Table */}
+      <div className="glass-panel rounded-3xl overflow-hidden shadow-2xl">
+        {loading ? (
+          <div className="p-8 space-y-4">
+            {Array(5).fill(0).map((_, i) => (
+              <div key={i} className="flex gap-4 items-center animate-pulse">
+                <div className="w-10 h-10 bg-slate-800 rounded-xl"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-slate-800 rounded w-1/3 mb-2"></div>
+                  <div className="h-3 bg-slate-800 rounded w-1/4"></div>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded-lg text-sm text-white/40 hover:text-white transition">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 disabled:opacity-50 transition-all flex items-center gap-2"
-            >
-              {submitting ? (
-                <div className="w-3.5 h-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-              ) : null}
-              Save Customer
-            </button>
+        ) : filteredCustomers.length > 0 ? (
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left">
+              <thead>
+                <tr>
+                  <th>Mijoz</th>
+                  <th>Telefon</th>
+                  <th>Kompaniya</th>
+                  <th>Qo'shilgan sana</th>
+                  <th className="text-right">Amallar</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filteredCustomers.map((customer) => (
+                  <tr key={customer._id} className="hover:bg-white/5 transition-colors group">
+                    <td>
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-md">
+                          {customer.name?.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-200 group-hover:text-blue-400 transition-colors">{customer.name}</p>
+                          <p className="text-xs text-slate-500">{customer.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="text-sm font-medium text-slate-400">{customer.phone || '-'}</td>
+                    <td className="text-sm font-medium text-slate-400">{customer.company || '-'}</td>
+                    <td className="text-xs font-bold text-slate-500 uppercase tracking-wider">{new Date(customer.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => startEdit(customer)}
+                          className="p-2 rounded-xl text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 border border-transparent hover:border-blue-500/20 transition-all"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(customer._id)}
+                          className="p-2 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </form>
-      )}
+        ) : (
+          <div className="p-16 text-center">
+            <div className="w-20 h-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4">
+              <span className="text-4xl">👥</span>
+            </div>
+            <h3 className="text-lg font-bold text-slate-200 mb-1">Mijozlar topilmadi</h3>
+            <p className="text-sm text-slate-500">Qidiruvni o'zgartiring yoki yangi mijoz qo'shing.</p>
+          </div>
+        )}
+      </div>
 
-      {/* Loading */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-[#0a0a0a] rounded-xl border border-white/[0.06] p-5">
-              <div className="skeleton w-8 h-8 rounded-full mb-3" />
-              <div className="skeleton w-28 h-4 mb-2" />
-              <div className="skeleton w-36 h-3 mb-1" />
-              <div className="skeleton w-24 h-3" />
+      {/* Add/Edit Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={resetForm}></div>
+          <div className="relative glass-panel rounded-3xl w-full max-w-md shadow-2xl animate-fade-in flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-white/10 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-100">{editingCustomer ? 'Mijozni Tahrirlash' : 'Yangi Mijoz'}</h2>
+              <button onClick={resetForm} className="p-2 text-slate-400 hover:text-slate-200 hover:bg-white/10 rounded-xl transition">
+                <X size={20} />
+              </button>
             </div>
-          ))}
-        </div>
-      ) : customers.length === 0 ? (
-        <div className="bg-[#0a0a0a] rounded-xl border border-white/[0.06] p-12 text-center">
-          <Users size={40} className="mx-auto mb-4 text-white/10" />
-          <p className="text-white/30 text-sm">No customers found</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {customers.map((customer, i) => (
-            <div
-              key={customer._id}
-              className="group bg-[#0a0a0a] rounded-xl border border-white/[0.06] p-5 hover:border-white/[0.12] transition-all duration-200 animate-slide-up"
-              style={{ animationDelay: `${i * 40}ms` }}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.06] flex items-center justify-center text-white/50 text-sm font-semibold">
-                  {customer.name?.charAt(0)?.toUpperCase() || '?'}
+            
+            <div className="p-6 overflow-y-auto custom-scrollbar">
+              <form id="customerForm" onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Ism</label>
+                  <input type="text" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full" placeholder="Mijoz ismi" />
                 </div>
-                <button
-                  onClick={() => handleDelete(customer._id)}
-                  className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition-all p-1 rounded"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-              <h3 className="text-sm font-semibold text-white mb-1">{customer.name}</h3>
-              <div className="space-y-1">
-                {customer.email && (
-                  <div className="flex items-center gap-2">
-                    <Mail size={12} className="text-white/20" />
-                    <p className="text-xs text-white/40 truncate">{customer.email}</p>
-                  </div>
-                )}
-                {customer.company && (
-                  <div className="flex items-center gap-2">
-                    <Building2 size={12} className="text-white/20" />
-                    <p className="text-xs text-white/40 truncate">{customer.company}</p>
-                  </div>
-                )}
-                {customer.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone size={12} className="text-white/20" />
-                    <p className="text-xs text-white/40">{customer.phone}</p>
-                  </div>
-                )}
-              </div>
-              {customer.status && (
-                <div className="mt-3 pt-3 border-t border-white/[0.04]">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border ${
-                    customer.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                    customer.status === 'inactive' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                    'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                  }`}>
-                    {customer.status}
-                  </span>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Email</label>
+                  <input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full" placeholder="email@example.com" />
                 </div>
-              )}
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Telefon</label>
+                  <input type="text" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full" placeholder="+998 90 123 45 67" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Kompaniya</label>
+                  <input type="text" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} className="w-full" placeholder="Kompaniya nomi" />
+                </div>
+                {!editingCustomer && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Parol</label>
+                    <input type="password" required value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full" placeholder="••••••••" />
+                  </div>
+                )}
+              </form>
             </div>
-          ))}
+            
+            <div className="p-6 border-t border-white/10 flex gap-3">
+              <button type="button" onClick={resetForm} className="flex-1 py-3 text-sm font-bold text-slate-300 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all">Bekor qilish</button>
+              <button type="submit" form="customerForm" className="flex-1 py-3 text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] transition-all">
+                {editingCustomer ? 'Saqlash' : 'Qo\'shish'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
+
+export default CustomersList;

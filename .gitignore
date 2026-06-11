@@ -8,9 +8,14 @@ node_modules/
 
 # Production
 /build
+# Next.js (root)
 /.next
+.next
+.next/
 /out
 /dist
+# Next.js (frontend subdirectory)
+frontend/.next/
 
 # Misc
 .DS_Store

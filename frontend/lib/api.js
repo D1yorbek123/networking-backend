@@ -1,4 +1,4 @@
-const API_URL = 'http://34.229.59.215:5000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 export const apiCall = async (endpoint, options = {}) => {
 	const token =
@@ -62,6 +62,13 @@ export const updateOrder = (id, data) =>
 	apiCall(`/api/orders/${id}`, { method: 'PUT', body: JSON.stringify(data) })
 export const deleteOrder = id =>
 	apiCall(`/api/orders/${id}`, { method: 'DELETE' })
+
+// Customer Orders (for logged-in customers)
+export const getMyOrders = () => apiCall('/api/orders/my')
+export const createMyOrder = data =>
+	apiCall('/api/orders/my', { method: 'POST', body: JSON.stringify(data) })
+export const cancelMyOrder = id =>
+	apiCall(`/api/orders/my/${id}/cancel`, { method: 'PUT' })
 
 // Deals
 export const getDeals = () => apiCall('/api/deals')

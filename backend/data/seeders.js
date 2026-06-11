@@ -1,4 +1,5 @@
 import dotenv from 'dotenv'
+import dns from 'node:dns'
 import mongoose from 'mongoose'
 import ActivityLog from '../src/models/ActivityLog.js'
 import Customer from '../src/models/Customer.js'
@@ -12,6 +13,15 @@ dotenv.config()
 const connectDB = async () => {
 	try {
 		const mongoURI = process.env.MONGODB_URI || process.env.MONGODB_LOCAL
+		if (mongoURI?.startsWith('mongodb+srv://')) {
+			const dnsServers = (process.env.MONGODB_DNS_SERVERS || '8.8.8.8,1.1.1.1')
+				.split(',')
+				.map(server => server.trim())
+				.filter(Boolean)
+			if (dnsServers.length > 0) {
+				dns.setServers(dnsServers)
+			}
+		}
 		await mongoose.connect(mongoURI)
 		console.log('[v0] Connected to MongoDB')
 	} catch (error) {
@@ -182,8 +192,11 @@ const seedData = async () => {
 		]
 
 		for (let i = 0; i < customerRecordsData.length; i++) {
+			// Link first 8 customer records to the 8 customer users
+			const linkedUser = i < customers.length ? customers[i]._id : undefined;
 			const customer = await Customer.create({
 				...customerRecordsData[i],
+				userId: linkedUser,
 				phone: `+1 (555) ${String(i + 1).padStart(3, '0')}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
 				address: `${i + 100} Fashion Street`,
 				city: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix'][
@@ -200,6 +213,16 @@ const seedData = async () => {
 			})
 			customerRecords.push(customer)
 		}
+
+		// Link mapping for reference:
+		// John Smith (john@company1.com)    -> Fashion Retail Inc
+		// Emma Wilson (emma@company2.com)   -> Boutique Collective
+		// Michael Brown (michael@company3.com) -> Department Store Co
+		// Sophie Taylor (sophie@company4.com) -> Online Fashion Hub
+		// David Johnson (david@company5.com)  -> Luxury Boutique Group
+		// Lisa Anderson (lisa@company6.com)   -> Urban Clothing
+		// James Martinez (james@company7.com) -> Sports Fashion Co
+		// Nina Garcia (nina@company8.com)    -> Kids Fashion World
 
 		// Create Products (15)
 		console.log('[v0] Creating products...')
@@ -276,13 +299,14 @@ const seedData = async () => {
 		// Create Deals (8)
 		console.log('[v0] Creating deals...')
 		const deals = []
-		const dealStages = [
-			'prospect',
-			'qualification',
-			'proposal',
-			'negotiation',
-			'closed',
-		]
+	const dealStages = [
+		'lead',
+		'qualified',
+		'proposal',
+		'negotiation',
+		'closed_won',
+		'closed_lost',
+	]
 
 		for (let i = 0; i < 8; i++) {
 			const deal = await Deal.create({

@@ -1,18 +1,18 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'Fashion Hub — CRM Platform',
-  description: 'Enterprise-grade Customer Relationship Management platform for Fashion Hub',
+  title: 'Fashion Hub - CRM Platformasi',
+  description: 'Fashion Hub uchun korporativ darajadagi CRM platformasi',
 }
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="uz">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="bg-black text-white noise">{children}</body>
+      <body className="text-slate-900" suppressHydrationWarning>{children}</body>
     </html>
   )
 }

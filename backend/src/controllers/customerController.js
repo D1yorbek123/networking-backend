@@ -1,4 +1,5 @@
 import Customer from '../models/Customer.js';
+import User from '../models/User.js';
 import ActivityLog from '../models/ActivityLog.js';
 
 export const getAllCustomers = async (req, res) => {
@@ -24,11 +25,31 @@ export const getCustomerById = async (req, res) => {
 
 export const createCustomer = async (req, res) => {
   try {
-    const { name, email, phone, company, industry, address, city, country, status, creditLimit } = req.body;
+    const { name, email, phone, company, industry, address, city, country, status, creditLimit, password } = req.body;
+    
+    let userId = null;
+    
+    // Create User account so the customer can log in
+    if (password) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        userId = existingUser._id;
+      } else {
+        const newUser = await User.create({
+          name,
+          email,
+          password,
+          role: 'customer',
+          department: 'Purchasing',
+        });
+        userId = newUser._id;
+      }
+    }
     
     const customer = new Customer({
       name, email, phone, company, industry, address, city, country, status, creditLimit,
       createdBy: req.user.id,
+      userId: userId,
     });
     
     await customer.save();

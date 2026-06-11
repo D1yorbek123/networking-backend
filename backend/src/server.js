@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB } from './config/database.js';
+import { ensureDemoAccounts } from './config/demoData.js';
 
 import authRoutes from './routes/authRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
@@ -22,9 +23,6 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Connect to MongoDB
-connectDB();
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -52,7 +50,10 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// Start server
+// Start server after MongoDB is ready
+await connectDB();
+await ensureDemoAccounts();
+
 app.listen(PORT, () => {
   console.log(`[v0] Server running on http://localhost:${PORT}`);
   console.log(`[v0] Environment: ${process.env.NODE_ENV || 'development'}`);

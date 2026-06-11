@@ -1,9 +1,22 @@
 import User from '../models/User.js';
+import Customer from '../models/Customer.js';
 import jwt from 'jsonwebtoken';
+
+const signToken = (user) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured');
+  }
+
+  return jwt.sign(
+    { id: user._id, email: user.email, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE || '7d' }
+  );
+};
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'All fields required' });
@@ -14,14 +27,26 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    const user = new User({ name, email, password, role });
+    const user = new User({ name, email, password, role: 'customer' });
     await user.save();
 
-    const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE }
-    );
+    if (user.role === 'customer') {
+      const customer = await Customer.findOne({ email: user.email });
+      if (customer) {
+        customer.userId = user._id;
+        customer.name = customer.name || user.name;
+        await customer.save();
+      } else {
+        await Customer.create({
+          name: user.name,
+          email: user.email,
+          status: 'active',
+          userId: user._id,
+        });
+      }
+    }
+
+    const token = signToken(user);
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -51,11 +76,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE }
-    );
+    const token = signToken(user);
 
     res.json({
       message: 'Login successful',
@@ -69,7 +90,10 @@ export const login = async (req, res) => {
 
 export const verify = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
     res.json({ user });
   } catch (error) {
     res.status(500).json({ message: error.message });

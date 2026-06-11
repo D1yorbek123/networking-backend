@@ -60,6 +60,10 @@ const customerSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

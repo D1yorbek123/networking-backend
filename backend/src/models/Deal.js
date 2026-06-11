@@ -18,8 +18,8 @@ const dealSchema = new mongoose.Schema(
     },
     stage: {
       type: String,
-      enum: ['prospect', 'qualification', 'proposal', 'negotiation', 'closed'],
-      default: 'prospect',
+      enum: ['lead', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost'],
+      default: 'lead',
     },
     probability: {
       type: Number,

@@ -1,10 +1,12 @@
 const nextConfig = {
 	reactStrictMode: true,
 	async rewrites() {
+		const apiInternalUrl = process.env.API_INTERNAL_URL || 'http://localhost:5000'
+
 		return [
 			{
 				source: '/api/:path*',
-				destination: 'http://34.229.59.215:5000/api/:path*',
+				destination: `${apiInternalUrl}/api/:path*`,
 			},
 		]
 	},
