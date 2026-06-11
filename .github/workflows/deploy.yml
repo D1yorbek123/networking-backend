@@ -18,6 +18,13 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ${{ secrets.PROJECT_PATH }}
-            git pull origin main
+            # 1. Serverdagi lokal o'zgarishlarni tashlab yuborish va GitHub'dagi versiyani majburan olish
+            git fetch origin main
+            git reset --hard origin/main
+            
+            # 2. Container'larni o'chirish
             docker compose down
-            docker compose up -d --build
+            
+            # 3. Keshni ishlatmasdan, butunlay yangidan build qilish
+            docker compose build --no-cache
+            docker compose up -d
