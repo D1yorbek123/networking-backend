@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { key: 'dashboard', label: 'Umumiy', icon: BarChart3 },
   { key: 'analytics', label: 'Tahlil', icon: PieChartIcon },
   { key: 'customers', label: 'Mijozlar', icon: Users },
-  { key: 'products', label: 'Mahsulotlar', icon: Layers },
+  { key: 'products', label: 'Remudule', icon: Layers },
   { key: 'orders', label: 'Buyurtmalar', icon: ShoppingCart },
   { key: 'deals', label: 'Shartnomalar', icon: Handshake },
 ]
